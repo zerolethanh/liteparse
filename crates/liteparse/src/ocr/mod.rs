@@ -25,3 +25,54 @@ pub trait OcrEngine {
         options: &OcrOptions,
     ) -> Result<Vec<OcrResult>, Box<dyn std::error::Error>>;
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    struct DummyEngine;
+    impl OcrEngine for DummyEngine {
+        fn name(&self) -> &str {
+            "dummy"
+        }
+        fn recognize(
+            &self,
+            _image_data: &[u8],
+            _width: u32,
+            _height: u32,
+            options: &OcrOptions,
+        ) -> Result<Vec<OcrResult>, Box<dyn std::error::Error>> {
+            Ok(vec![OcrResult {
+                text: format!("lang={}", options.language),
+                bbox: [0.0, 0.0, 10.0, 10.0],
+                confidence: 0.9,
+            }])
+        }
+    }
+
+    #[test]
+    fn test_engine_trait_object() {
+        let engine: Box<dyn OcrEngine> = Box::new(DummyEngine);
+        assert_eq!(engine.name(), "dummy");
+        let opts = OcrOptions {
+            language: "eng".into(),
+        };
+        let r = engine.recognize(&[], 1, 1, &opts).unwrap();
+        assert_eq!(r.len(), 1);
+        assert_eq!(r[0].text, "lang=eng");
+        assert_eq!(r[0].bbox, [0.0, 0.0, 10.0, 10.0]);
+        assert!((r[0].confidence - 0.9).abs() < 1e-6);
+    }
+
+    #[test]
+    fn test_ocr_result_clone() {
+        let r = OcrResult {
+            text: "hi".into(),
+            bbox: [1.0, 2.0, 3.0, 4.0],
+            confidence: 0.5,
+        };
+        let c = r.clone();
+        assert_eq!(c.text, "hi");
+        assert_eq!(c.bbox, [1.0, 2.0, 3.0, 4.0]);
+    }
+}
