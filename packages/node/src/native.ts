@@ -110,16 +110,19 @@ function loadNative(): NativeBindings {
   // Fallback: local .node file (development builds)
   // Try several paths since __dirname may be dist/ or dist/src/
   const searchDirs = [__dirname, join(__dirname, ".."), join(__dirname, "..", "..")];
+  // Try full triple names (e.g. liteparse.linux-x64-gnu.node) and simple name
+  const fileNames = [
+    ...candidates.map((c) => `liteparse.${c}.node`),
+    `liteparse.${platform}-${arch}.node`,
+    "liteparse.node",
+  ];
   for (const dir of searchDirs) {
-    try {
-      return require(join(dir, `liteparse.${platform}-${arch}.node`));
-    } catch {
-      // try next
-    }
-    try {
-      return require(join(dir, "liteparse.node"));
-    } catch {
-      // try next
+    for (const fileName of fileNames) {
+      try {
+        return require(join(dir, fileName));
+      } catch {
+        // try next
+      }
     }
   }
 
