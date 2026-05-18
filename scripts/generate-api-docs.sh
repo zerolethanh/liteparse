@@ -13,6 +13,7 @@ cd crates/liteparse/
 cargo +nightly rustdoc --lib -- -Z unstable-options --output-format json
 cd ../../
 rustdoc-md --path ./target/doc/liteparse.json --output ${TMP_DIR}/README.md
+./scripts/strip-impls-from-api-docs.py
 
 # Prepend Starlight frontmatter to the generated README
 cat > "${OUT_FILE}" <<'FRONTMATTER'

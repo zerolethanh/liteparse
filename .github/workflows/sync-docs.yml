@@ -12,6 +12,9 @@ jobs:
       - name: Checkout source repo
         uses: actions/checkout@v4
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8
+
       - name: Install Rust nightly
         uses: dtolnay/rust-toolchain@nightly
 
