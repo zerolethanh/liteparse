@@ -8,7 +8,11 @@ TMP_DIR="${DOCS_DIR}/.api-tmp"
 OUT_FILE="${DOCS_DIR}/api.md"
 
 # Generate markdown with TypeDoc
-npx typedoc
+mkdir -p $TMP_DIR
+cd crates/liteparse/
+cargo +nightly rustdoc --lib -- -Z unstable-options --output-format json
+cd ../../
+rustdoc-md --path ./target/doc/liteparse.json --output ${TMP_DIR}/README.md
 
 # Prepend Starlight frontmatter to the generated README
 cat > "${OUT_FILE}" <<'FRONTMATTER'
