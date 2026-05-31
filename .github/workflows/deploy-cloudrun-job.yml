@@ -1,0 +1,55 @@
+name: Deploy to Cloud Run Job
+
+on:
+  push:
+    branches:
+      - main  # Hoặc tên branch chính của bạn
+
+env:
+  PROJECT_ID: eliza-78950
+  REGION: asia-southeast1
+  JOB_NAME: liteparse-github-job
+  REPOSITORY: liteparse-repo
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ secrets.ELIZA_GH_ACTION_GENERAL }}
+
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+
+    - name: Configure Docker for Artifact Registry
+      run: |
+        gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+    # Tạo Artifact Registry nếu chưa có
+    - name: Create Artifact Registry Repository
+      run: |
+        gcloud artifacts repositories create ${{ env.REPOSITORY }} \
+          --repository-format=docker \
+          --location=${{ env.REGION }} \
+          --quiet || true
+
+    # Build và Push Docker Image lên GCP
+    - name: Build and Push Container
+      run: |
+        IMAGE_TAG="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.JOB_NAME }}:${{ github.sha }}"
+        docker build -t $IMAGE_TAG .
+        docker push $IMAGE_TAG
+        echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
+
+    # Tạo hoặc cập nhật Cloud Run Job
+    - name: Deploy to Cloud Run Job
+      run: |
+        gcloud run jobs deploy ${{ env.JOB_NAME }} \
+          --image=${{ env.IMAGE_TAG }} \
+          --region=${{ env.REGION }} \
+          --max-retries=3
